@@ -1,0 +1,178 @@
+# Primera opció de càrrega d'imatges
+
+import keras
+from keras.preprocessing import image
+from keras.models import Model
+from keras.layers import Input, Dense
+from keras.applications.resnet50 import ResNet50
+import numpy as np
+import cv2
+import argparse
+import matplotlib.pyplot as plt
+from _future_ import absolute_import
+import datetime
+from flask import current_app
+from google.cloud import storage
+import six
+from werkzeug import secure_filename
+from werkzeug.exceptions import BadRequest
+
+
+def _get_storage_client():
+    return storage.Client(
+        project=current_app.config['gedsa-2018-equip2'])
+
+
+def _check_extension(filename, allowed_extensions):
+    if ('.' not in filename or
+            filename.split('.').pop().lower() not in allowed_extensions):
+        raise BadRequest(
+            "{0} has an invalid name or extension".format(filename))
+
+
+def _safe_filename(filename):
+  
+    filename = secure_filename(filename)
+    date = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H%M%S")
+    basename, extension = filename.rsplit('.', 1)
+    return "{0}-{1}.{2}".format(basename, date, extension)
+
+
+# [START upload_file]
+def upload_file(file_stream, filename, content_type):
+
+    client = _get_storage_client()
+    bucket = client.bucket(current_app.config['gedsa-segment-2018'])
+    blob = bucket.blob(filename)
+
+    blob.upload_from_string(
+        file_stream,
+        content_type=content_type)
+
+    url = blob.public_url
+
+    if isinstance(url, six.binary_type):
+        url = url.decode('utf-8')
+
+    return url
+# [END upload_file]
+
+
+model = ResNet50(weights='imagenet', include_top=False, pooling=avg)
+
+model = Model(input=base_model.input,
+                 output=base_model.get_layer('softmax').output)
+
+img_path = 'images/1.jpg'
+img = image.load_img(img_path, target_size=(500, 375))
+img_data = image.img_to_array(img)
+
+img_data = preprocess_input(img_data)
+
+ResNet50_feature = model.predict(img_data)
+
+print (ResNet50_feature.shape)
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Segona opció de càrrega d'imatges
+
+import logging
+import os
+import cloudstorage as gcs
+import webapp2
+
+from google.appengine.api import app_identity
+
+def get(self):
+  bucket_name = os.environ.get('gedsa-segment-2018',
+                               app_identity.get_default_gcs_bucket_name())
+
+  self.response.headers['Content-Type'] = 'text/plain'
+  self.response.write('Demo GCS Application running from Version: '
+                      + os.environ['CURRENT_VERSION_ID'] + '\n')
+  self.response.write('Using bucket name: ' + bucket_name + '\n\n')
+  
+  def read_file(self, filename):
+  self.response.write('Reading the full file contents:\n')
+
+  gcs_file = gcs.open(filename)
+  contents = gcs_file.read()
+  gcs_file.close()
+  self.response.write(contents)
+  
+  
+  
+  
+  
+  
+  
+  
+  
+# Comparació d'imatges
+
+entrenament =np.reshape(x_train, (103,187500))
+print('entrenament shape:', entrenament.shape)
+
+prova =np.reshape(x_test, (59,187500))
+print('prova shape:', prova.shape)
+
+from sklearn import preprocessing
+
+# l2-normalize the samples (rows). 
+entrenament_n = preprocessing.normalize(entrenament, norm='l2')
+ 
+
+print('entrenament_n shape:', entrenament_n.shape)
+
+from sklearn import preprocessing
+
+# l2-normalize the samples (rows). 
+prova_n = preprocessing.normalize(prova, norm='l2')
+ 
+
+print('prova_n shape:', prova_n.shape)
+
+ent= entrenament_n.transpose()
+print('ent shape:', ent.shape)
+
+tot= np.matmul(prova_n, ent)
+print('tot shape:', tot.shape)
+
+ranks = np.argsort(tot, axis=1)[:,::-1]
+
+xfrom PIL import Image, ImageOps
+
+# get the original images for visualization
+x_train_images = np.reshape(x_train, (103, 500, 375))
+x_test_images = np.reshape(x_test, (59, 500, 375))
+
+h,w = (500, 375)
+new_image= Image.new('RGB', (h*15,w*10))
+
+# Visualize ranks of the 10 queries
+offset = 900 # it will show results from query #'offset' to #offset+10
+for q in range(10):
+  ranks_q = ranks[q*(offset+1),:]
+  for i in range(15):
+      new_image.paste( Image.fromarray(x_train_images[ranks_q[i]]), (h*(1+i),w*q ))
+
+  # visualize query
+  ima_q = Image.fromarray(x_test_images[q*(offset+1),...])
+  ima_q = ImageOps.expand(ima_q, border=3, fill='green')
+
+  new_image.paste(ima_q, (0,w*q))
+
+plt.imshow(new_image)
+plt.axis('off')
+plt.show()
