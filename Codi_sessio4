@@ -1,4 +1,5 @@
 # Primera opció de càrrega d'imatges
+# Esto es una prueba xdé
 
 import keras
 from keras.preprocessing import image
